@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp Chat Viewer (Search with Navigation)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+                         Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            background-color: #0b141a;
+            margin: 0;
+            padding: 0;
+            color: #e9edef; /* Default text color */
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+        .container {
+            padding: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .header h2 {
+            font-size: 1.2em;
+            margin: 0;
+            text-align: center;
+            flex: 1;
+        }
+        .search-icon {
+            position: absolute;
+            right: 0;
+            top: 0;
+            background: none;
+            border: none;
+            color: #e9edef;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 10px;
+        }
+        #searchBar {
+            display: none;
+            margin-bottom: 10px;
+            background: #202c33;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #searchBar input[type="text"] {
+            width: 50%;
+            padding: 5px;
+            background: #2a2f32;
+            border: 1px solid #3b3b3b;
+            border-radius: 5px;
+            color: #e9edef;
+        }
+        #searchBar button {
+            padding: 5px 10px;
+            background: #056162;
+            border: none;
+            border-radius: 5px;
+            color: #e9edef;
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        #feedback {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        #feedback.error {
+            background-color: #d64550;
+            color: #ffffff;
+        }
+        #feedback.success {
+            background-color: #056162;
+            color: #ffffff;
+        }
+        #chatContainer {
+            margin-top: 10px;
+        }
+        #jumpControls {
+            display: none;
+            margin-bottom: 10px;
+            background: #202c33;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        #jumpControls label {
+            margin-right: 5px;
+        }
+        #yearSelect, #monthSelect, #daySelect, #jumpBtn {
+            padding: 5px;
+            background: #2a2f32;
+            border: 1px solid #3b3b3b;
+            border-radius: 5px;
+            color: #e9edef;
+            font-size: 0.9em;
+            margin-right: 5px;
+        }
+
+        #chat {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-bottom: 20px;
+            background: #0b141a;
+            border-radius: 5px;
+            border: 1px solid #2a2f32;
+            font-size: 0.95em;
+        }
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+        .message .content {
+            max-width: 80%;
+            padding: 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            color: #e9edef;
+            font-size: 0.95em;
+            line-height: 1.3em;
+        }
+        .message.sent .content {
+            background-color: #056162;
+            margin-left: auto;
+            text-align: right;
+        }
+        .message.received .content {
+            background-color: #202c33;
+            margin-right: auto;
+            text-align: left;
+        }
+        .sender {
+            font-weight: bold;
+            margin-bottom: 3px;
+            color: #e9edef;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 5px;
+        }
+        #chat::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        /* Date Divider Styling */
+        .date-divider {
+            text-align: center;
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+        }
+        .date-divider span {
+            background: #202c33;
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: #e9edef;
+            font-size: 0.85em;
+        }
+
+        /* Modal Styling */
+        #modalOverlay {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        #modal {
+            background: #202c33;
+            padding: 20px;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 300px;
+            margin: 100px auto;
+            color: #e9edef;
+            font-size: 0.95em;
+        }
+        #modal h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+        #modal button {
+            margin-top: 10px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #056162;
+            color: #e9edef;
+            font-size: 1em;
+            width: 100%;
+        }
+        #modal .option {
+            margin-bottom: 10px;
+        }
+        #modal input[type="radio"] {
+            margin-right: 5px;
+        }
+
+        mark {
+            background: #ffc107; 
+            color: #0b141a; 
+            padding: 0; 
+            border-radius: 2px;
+        }
+
+        .nav-buttons {
+            display: none;
+        }
+        .nav-buttons button {
+            padding: 5px;
+            background: #056162;
+            border: none;
+            border-radius: 5px;
+            color: #e9edef;
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 400px) {
+            .message .content {
+                max-width: 100%;
+            }
+            #jumpControls, #chat, #modal {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>WhatsApp Chat Viewer</h2>
+            <button class="search-icon" id="toggleSearchBtn">🔍</button>
+        </div>
+        <div id="searchBar">
+            <input type="text" id="searchInput" placeholder="Search messages...">
+            <button id="doSearchBtn">Search</button>
+            <button id="prevMatchBtn">▲</button>
+            <button id="nextMatchBtn">▼</button>
+            <button id="closeSearchBtn">Close</button>
+        </div>
+        
+        <input type="file" id="fileInput" accept=".txt">
+        <div id="feedback"></div>
+        
+        <div id="chatContainer">
+            <div id="jumpControls">
+                <label for="yearSelect">Year:</label>
+                <select id="yearSelect"></select>
+
+                <label for="monthSelect">Month:</label>
+                <select id="monthSelect" disabled></select>
+
+                <label for="daySelect">Day:</label>
+                <select id="daySelect" disabled></select>
+
+                <button id="jumpBtn">Go</button>
+            </div>
+            <div id="chat"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Selecting Your Identity -->
+    <div id="modalOverlay">
+        <div id="modal">
+            <h3>Select Who You Are</h3>
+            <div id="senderOptions"></div>
+            <button id="confirmSelectionBtn">Confirm</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const feedbackDiv = document.getElementById('feedback');
+        const chatContainer = document.getElementById('chat');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const senderOptionsDiv = document.getElementById('senderOptions');
+        const confirmSelectionBtn = document.getElementById('confirmSelectionBtn');
+
+        const jumpControls = document.getElementById('jumpControls');
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const daySelect = document.getElementById('daySelect');
+        const jumpBtn = document.getElementById('jumpBtn');
+
+        // Search elements
+        const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+        const searchBar = document.getElementById('searchBar');
+        const searchInput = document.getElementById('searchInput');
+        const doSearchBtn = document.getElementById('doSearchBtn');
+        const closeSearchBtn = document.getElementById('closeSearchBtn');
+        const prevMatchBtn = document.getElementById('prevMatchBtn');
+        const nextMatchBtn = document.getElementById('nextMatchBtn');
+
+        let messages = [];
+        let uniqueSenders = [];
+        let selectedUserName = null; 
+        let dateMap = {}; 
+        let yearMap = {};
+        let messageElements = [];
+
+        // Search state
+        let searchMatches = []; // Array of mark elements
+        let currentMatchIndex = -1;
+        let currentSearchTerm = '';
+
+        fileInput.addEventListener('change', handleFile);
+        confirmSelectionBtn.addEventListener('click', confirmSelection);
+        jumpBtn.addEventListener('click', jumpToSelectedDate);
+
+        yearSelect.addEventListener('change', handleYearChange);
+        monthSelect.addEventListener('change', handleMonthChange);
+
+        toggleSearchBtn.addEventListener('click', () => {
+            searchBar.style.display = searchBar.style.display === 'none' || searchBar.style.display === '' ? 'block' : 'none';
+        });
+        doSearchBtn.addEventListener('click', performSearch);
+        closeSearchBtn.addEventListener('click', () => {
+            searchBar.style.display = 'none';
+            searchInput.value = '';
+            restoreAllMessages();
+            clearMatches();
+        });
+
+        prevMatchBtn.addEventListener('click', () => {
+            if (searchMatches.length > 0) {
+                currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+                showCurrentMatch();
+            }
+        });
+
+        nextMatchBtn.addEventListener('click', () => {
+            if (searchMatches.length > 0) {
+                currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+                showCurrentMatch();
+            }
+        });
+
+        function handleFile() {
+            clearFeedback();
+            chatContainer.innerHTML = '';
+            jumpControls.style.display = 'none';
+            messages = [];
+            uniqueSenders = [];
+            selectedUserName = null; 
+            dateMap = {}; 
+            yearMap = {};
+            messageElements = [];
+            restoreAllMessages();
+            clearMatches();
+
+            const file = fileInput.files[0];
+            if (!file) {
+                showFeedback('No file selected. Please choose a .txt file.', 'error');
+                return;
+            }
+
+            showFeedback('Reading file...', 'success');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const sanitized = sanitizeText(content);
+                messages = parseChat(sanitized);
+
+                if (messages.length === 0) {
+                    showFeedback('No messages found. Ensure the format is correct.', 'error');
+                    return;
+                }
+
+                showFeedback(`Found ${messages.length} messages. Loading senders...`, 'success');
+
+                uniqueSenders = getUniqueSenders(messages);
+                if (uniqueSenders.length !== 2) {
+                    showFeedback('This chat does not appear to be 1-2-1. Found senders: ' + uniqueSenders.join(', '), 'error');
+                    return;
+                }
+
+                // Show the modal to select who you are
+                showSenderSelectionModal(uniqueSenders);
+            };
+            reader.onerror = () => {
+                showFeedback('Error reading the file. Please try again.', 'error');
+            };
+
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseChat(text) {
+            const lines = text.split('\n');
+            const msgs = [];
+            const regex = /^\[(\d{1,2}\/\d{1,2}\/\d{4}),\s(\d{1,2}:\d{2}:\d{2}\s?(AM|PM))\]\s([^:]+):\s(.*)$/;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                const match = line.match(regex);
+                if (match) {
+                    const [_, date, timeWithMeridiem, meridiem, sender, message] = match;
+                    msgs.push({ date, time: timeWithMeridiem, sender, message });
+                } else if (msgs.length > 0) {
+                    msgs[msgs.length - 1].message += '\n' + line;
+                }
+            }
+
+            return msgs;
+        }
+
+        function sanitizeText(text) {
+            return text.replace(/[\u200E\u200F\u202A-\u202E\u202F\u00A0]/g, ' ');
+        }
+
+        function getUniqueSenders(msgs) {
+            const sendersSet = new Set();
+            msgs.forEach(m => sendersSet.add(m.sender));
+            return Array.from(sendersSet);
+        }
+
+        function showSenderSelectionModal(senders) {
+            senderOptionsDiv.innerHTML = '';
+            senders.forEach((s, i) => {
+                const div = document.createElement('div');
+                div.classList.add('option');
+                div.innerHTML = `<label><input type="radio" name="senderSelect" value="${s}" ${i===0?'checked':''}> ${s}</label>`;
+                senderOptionsDiv.appendChild(div);
+            });
+            modalOverlay.style.display = 'block';
+        }
+
+        function confirmSelection() {
+            const radios = document.querySelectorAll('input[name="senderSelect"]');
+            let chosen = null;
+            for (const r of radios) {
+                if (r.checked) {
+                    chosen = r.value.trim();
+                    break;
+                }
+            }
+
+            if (!chosen) {
+                showFeedback('Please select who you are.', 'error');
+                return;
+            }
+
+            selectedUserName = chosen;
+            modalOverlay.style.display = 'none';
+            showFeedback(`You selected: ${selectedUserName}. Displaying chat...`, 'success');
+            displayChat(messages, selectedUserName);
+        }
+
+        function displayChat(msgs, userName) {
+            chatContainer.innerHTML = '';
+            dateMap = {};
+            yearMap = {};
+            messageElements = [];
+            restoreAllMessages();
+            clearMatches();
+
+            const userNameLower = userName.toLowerCase();
+
+            let previousDate = null;
+
+            msgs.forEach((msg, index) => {
+                const currentDate = msg.date;
+                if (currentDate !== previousDate) {
+                    const dateDivider = createDateDivider(currentDate);
+                    chatContainer.appendChild(dateDivider);
+                    previousDate = currentDate;
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+
+                const isUser = userName && msg.sender.toLowerCase() === userNameLower;
+                messageDiv.classList.add(isUser ? 'sent' : 'received');
+
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('content');
+
+                if (!isUser) {
+                    const senderDiv = document.createElement('div');
+                    senderDiv.classList.add('sender');
+                    senderDiv.textContent = msg.sender;
+                    contentDiv.appendChild(senderDiv);
+                }
+
+                const textDiv = document.createElement('div');
+                textDiv.classList.add('text');
+                textDiv.innerHTML = linkify(escapeHTML(msg.message));
+                textDiv.dataset.originalText = msg.message;
+                contentDiv.appendChild(textDiv);
+
+                const timestampDiv = document.createElement('div');
+                timestampDiv.classList.add('timestamp');
+                timestampDiv.textContent = `${msg.date} ${msg.time}`;
+                contentDiv.appendChild(timestampDiv);
+
+                messageDiv.appendChild(contentDiv);
+                chatContainer.appendChild(messageDiv);
+
+                const [day, month, year] = msg.date.split('/');
+                const dayKey = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+                if (!dateMap[dayKey]) {
+                    dateMap[dayKey] = messageDiv;
+                }
+
+                messageElements.push(textDiv);
+            });
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            showFeedback('Chat displayed successfully.', 'success');
+
+            buildYearMap();
+            populateYearSelection();
+        }
+
+        function createDateDivider(dateStr) {
+            const [day, month, year] = dateStr.split('/');
+            const dateObj = new Date(year, parseInt(month)-1, parseInt(day));
+            const formattedDate = dateObj.toLocaleDateString('default', {
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric'
+            });
+
+            const divider = document.createElement('div');
+            divider.classList.add('date-divider');
+
+            const span = document.createElement('span');
+            span.textContent = formattedDate;
+
+            divider.appendChild(span);
+
+            return divider;
+        }
+
+        function buildYearMap() {
+            for (const [key, element] of Object.entries(dateMap)) {
+                const [year, month, day] = key.split('-');
+                if (!yearMap[year]) yearMap[year] = {};
+                if (!yearMap[year][month]) yearMap[year][month] = {};
+                yearMap[year][month][day] = element;
+            }
+        }
+
+        function populateYearSelection() {
+            yearSelect.innerHTML = '';
+            monthSelect.innerHTML = '';
+            daySelect.innerHTML = '';
+            monthSelect.disabled = true;
+            daySelect.disabled = true;
+
+            const years = Object.keys(yearMap).sort();
+            years.forEach(y => {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y;
+                yearSelect.appendChild(option);
+            });
+
+            if (years.length > 0) {
+                jumpControls.style.display = 'block';
+                const latestYear = years[years.length - 1];
+                yearSelect.value = latestYear;
+                handleYearChange();
+            }
+        }
+
+        function handleYearChange() {
+            const selectedYear = yearSelect.value;
+            if (!selectedYear) {
+                monthSelect.innerHTML = '';
+                daySelect.innerHTML = '';
+                monthSelect.disabled = true;
+                daySelect.disabled = true;
+                return;
+            }
+
+            const months = Object.keys(yearMap[selectedYear]).sort((a,b)=>parseInt(a)-parseInt(b));
+            monthSelect.innerHTML = '';
+            daySelect.innerHTML = '';
+            months.forEach(m => {
+                const monthInt = parseInt(m,10);
+                const monthName = new Date(selectedYear, monthInt-1).toLocaleString('default', {month: 'long'});
+                const op = document.createElement('option');
+                op.value = m;
+                op.textContent = monthName;
+                monthSelect.appendChild(op);
+            });
+
+            monthSelect.disabled = months.length === 0;
+            daySelect.disabled = true;
+            daySelect.innerHTML = '';
+        }
+
+        function handleMonthChange() {
+            const selectedYear = yearSelect.value;
+            const selectedMonth = monthSelect.value;
+            if (!selectedYear || !selectedMonth) {
+                daySelect.innerHTML = '';
+                daySelect.disabled = true;
+                return;
+            }
+
+            const days = Object.keys(yearMap[selectedYear][selectedMonth]).sort((a,b)=>parseInt(a)-parseInt(b));
+            daySelect.innerHTML = '';
+            days.forEach(d => {
+                const dayInt = parseInt(d,10);
+                const dateObj = new Date(selectedYear, parseInt(selectedMonth)-1, dayInt);
+                const monthName = dateObj.toLocaleString('default', {month: 'long'});
+                const op = document.createElement('option');
+                op.value = d;
+                op.textContent = `${monthName} ${dayInt}, ${selectedYear}`;
+                daySelect.appendChild(op);
+            });
+            daySelect.disabled = days.length === 0;
+        }
+
+        function jumpToSelectedDate() {
+            const year = yearSelect.value;
+            const month = monthSelect.value;
+            const day = daySelect.value;
+            if (!year || !month || !day) {
+                showFeedback('Please select a Year, Month, and Day before clicking Go.', 'error');
+                return;
+            }
+
+            const element = yearMap[year][month][day];
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function showFeedback(message, type) {
+            feedbackDiv.textContent = message;
+            feedbackDiv.className = 'feedback ' + (type === 'error' ? 'error' : 'success');
+            feedbackDiv.style.display = 'block';
+        }
+
+        function clearFeedback() {
+            feedbackDiv.style.display = 'none';
+            feedbackDiv.textContent = '';
+            feedbackDiv.className = 'feedback';
+        }
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function linkify(text) {
+            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            return text.replace(urlPattern, '<a href="$1" target="_blank" style="color:#64b5f6;">$1</a>').replace(/\n/g, '<br>');
+        }
+
+        function restoreAllMessages() {
+            // Restore original text for all messages to remove highlights
+            messageElements.forEach(el => {
+                el.innerHTML = linkify(escapeHTML(el.dataset.originalText));
+            });
+        }
+
+        function clearMatches() {
+            searchMatches = [];
+            currentMatchIndex = -1;
+            currentSearchTerm = '';
+            prevMatchBtn.style.display = 'inline-block';
+            nextMatchBtn.style.display = 'inline-block';
+        }
+
+        function performSearch() {
+            const searchTerm = searchInput.value.trim();
+            restoreAllMessages();
+            clearMatches();
+
+            if (!searchTerm) {
+                // Empty search just clears highlights
+                clearFeedback();
+                prevMatchBtn.style.display = 'none';
+                nextMatchBtn.style.display = 'none';
+                return;
+            }
+
+            currentSearchTerm = searchTerm;
+            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+            let matchCount = 0;
+
+            // Highlight matches
+            messageElements.forEach(el => {
+                const original = el.dataset.originalText;
+                if (regex.test(original)) {
+                    let linkifiedText = linkify(escapeHTML(original)).replace(/\n/g, '<br>');
+                    // Apply highlight in linkified
+                    linkifiedText = linkifiedText.replace(regex, '<mark>$1</mark>');
+                    el.innerHTML = linkifiedText;
+                }
+            });
+
+            // Collect all marks
+            searchMatches = Array.from(chatContainer.querySelectorAll('mark'));
+
+            matchCount = searchMatches.length;
+            if (matchCount === 0) {
+                showFeedback(`No messages found containing "${searchTerm}".`, 'error');
+                prevMatchBtn.style.display = 'none';
+                nextMatchBtn.style.display = 'none';
+            } else {
+                currentMatchIndex = 0;
+                showCurrentMatch();
+                if (matchCount === 1) {
+                    // Only one match, no need for navigation
+                    prevMatchBtn.style.display = 'none';
+                    nextMatchBtn.style.display = 'none';
+                } else {
+                    prevMatchBtn.style.display = 'inline-block';
+                    nextMatchBtn.style.display = 'inline-block';
+                }
+            }
+        }
+
+        function showCurrentMatch() {
+            if (searchMatches.length === 0 || currentMatchIndex < 0 || currentMatchIndex >= searchMatches.length) return;
+            const currentMark = searchMatches[currentMatchIndex];
+            currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showFeedback(`Showing match ${currentMatchIndex + 1} of ${searchMatches.length} for "${currentSearchTerm}"`, 'success');
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+    </script>
+</body>
+</html>
